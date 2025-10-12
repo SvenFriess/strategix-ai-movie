@@ -1,104 +1,114 @@
+"use client";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, MessageCircle, ChevronRight, Clock, X, ListVideo } from "lucide-react";
+import Link from "next/link";
 
 /**
- * Strategix-AI: Video + zeitcodierte Q&A + Kapitel + (optional) Chat-Panel
- * ---------------------------------------------------------------
- * ✅ Drop-in React-Komponente – läuft in Next.js (app/pages) oder Vite
- * ✅ Tailwind für Styles (minimal), framer-motion für sanfte Übergänge
- * ✅ Zeitcodierte Fragen/Antworten (JSON) werden passend eingeblendet
- * ✅ Kapitel-Navigation (anklickbar) springt zu Video-Zeitpunkten
- * ✅ Chat-Button öffnet ein seitliches Panel (Platzhalter für Bot-Demo)
- *
- * ▶ Nutzung in Next.js (empfohlen):
- * 1) Tailwind einrichten (npx tailwindcss init -p) und globals.css einbinden
- * 2) Diese Datei in /app/page.tsx oder /pages/index.tsx einfügen
- * 3) Assets/Video nach /public legen und videoSrc anpassen
- * 4) npm run dev
- *
- * ▶ Nutzung in Vite-React:
- * 1) npm create vite@latest myapp -- --template react
- * 2) Tailwind konfigurieren (siehe Tailwind Docs für Vite)
- * 3) Diese Datei als src/App.jsx speichern
- * 4) npm run dev
- *
- * ▶ GitHub Pages (statisch):
- * - Vite: mit gh-pages deployen (build + push auf gh-pages Branch)
- * - Next: mit next export (Static HTML Export) oder über ein Hosting mit Node
+ * strategix-AI: Video + zeitcodierte Q&A + Kapitel + (optional) Chat-Panel
+ * - Tailwind Styles, framer-motion für Übergänge
+ * - Hero mit Borgo-Landscape.jpg (liegt in /public)
  */
 
-// --- Demo-Daten (bitte durch echte Inhalte ersetzen) ---
+// --- Demo-Daten (bei Bedarf anpassen) ---
 const demoVideo = {
-  title: "Strategix-AI – Lokaler Chatbot Erklärfilm",
-  // Lege eine MP4-Datei (H.264 + AAC) unter /public/video.mp4 ab
-  videoSrc: "/video.mp4",
-  poster: "/poster.jpg", // optionales Poster-Bild
+  title: "strategix-AI – Lokaler Chatbot Erklärfilm",
+  videoSrc: "/video.mp4", // /public/video.mp4
+  poster: "/poster.jpg",  // optional
 };
 
-const demoChapters = [
+const demoChapters: { time: number; label: string }[] = [
   { time: 0, label: "Intro" },
-  { time: 25, label: "Was ist Strategix‑AI?" },
+  { time: 25, label: "Was ist strategix-AI?" },
   { time: 60, label: "Lokales LLM + Ollama" },
   { time: 95, label: "Anwendungsfälle" },
   { time: 115, label: "Security & DSGVO" },
   { time: 125, label: "Outro / CTA" },
 ];
 
-const demoQA = [
+const demoQA: { time: number; q: string; a: string }[] = [
   { time: 12, q: "Brauche ich Internet/Cloud?", a: "Nein – das Modell läuft lokal (Ollama), keine Cloud nötig." },
-  { time: 45, q: "Was bedeutet DSGVO‑konform?", a: "Daten bleiben on‑premise. Keine Drittanbieter-Übermittlung." },
-  { time: 70, q: "Welches Modell wird genutzt?", a: "Z. B. Mistral, Phi oder DeepSeek‑R1 über Ollama – modular austauschbar." },
-  { time: 100, q: "Für wen eignet sich das?", a: "KMU, Bildung, Tourismus, Recht – überall, wo Datenschutz zählt." },
-  { time: 118, q: "Wie starte ich einen Pilot?", a: "Kontakt aufnehmen, Use Case klären, 2‑Wochen‑Pilot mit lokalem Setup." },
+  { time: 45, q: "Was bedeutet **DSGVO-konform**?", a: "Daten bleiben on-premise. Keine Drittanbieter-Übermittlung." },
+  { time: 70, q: "Welches Modell wird genutzt?", a: "Z. B. `Mistral`, `Phi` oder `DeepSeek-R1` über Ollama – modular austauschbar." },
+  { time: 100, q: "Für wen eignet sich das?", a: "KMU, Bildung, Tourismus, Recht – überall, wo **Datenschutz** zählt." },
+  { time: 118, q: "Wie starte ich einen Pilot?", a: "Kontakt aufnehmen, Use Case klären, 2-Wochen-Pilot mit lokalem Setup." },
 ];
 
+// --- Mini-Markdown: **bold**, `code`, Zeilenumbrüche ---
+function md(s: string) {
+  return s
+    .replace(/\n/g, "<br/>")
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/`(.+?)`/g, "<code>$1</code>");
+}
+
 // --- Hilfsfunktionen ---
-const formatTime = (t) => {
+const formatTime = (t: number) => {
   const m = Math.floor(t / 60);
   const s = Math.floor(t % 60).toString().padStart(2, "0");
   return `${m}:${s}`;
 };
 
-function useActiveQA(videoRef, qa, threshold = 2) {
-  const [active, setActive] = useState(null);
+function useActiveQA(
+  videoRef: React.RefObject<HTMLVideoElement>,
+  qa: { time: number; q: string; a: string }[],
+  threshold = 2
+) {
+  const [active, setActive] = useState<{ time: number; q: string; a: string } | null>(null);
   useEffect(() => {
     const el = videoRef.current;
     if (!el) return;
-
     const onTimeUpdate = () => {
       const t = el.currentTime;
-      // Suche die letzte QA, deren time innerhalb threshold Sekunden vergangen ist
-      // und die noch nicht "zu alt" ist (z. B. 12s angezeigt)
       const candidate = [...qa]
         .filter((item) => t >= item.time && t - item.time <= 12)
         .sort((a, b) => b.time - a.time)[0];
       setActive(candidate || null);
     };
-
     el.addEventListener("timeupdate", onTimeUpdate);
     return () => el.removeEventListener("timeupdate", onTimeUpdate);
   }, [videoRef, qa, threshold]);
-
   return active;
 }
 
 // --- Hauptkomponente ---
 export default function App() {
   return (
-    <div className="min-h-screen bg-white text-neutral-900">
-      <div className="mx-auto max-w-6xl px-4 py-10">
-        <Header />
-        <VideoQnA
-          title={demoVideo.title}
-          videoSrc={demoVideo.videoSrc}
-          poster={demoVideo.poster}
-          chapters={demoChapters}
-          qa={demoQA}
+    <>
+      {/* 🎥 Hero – volle Breite, sicheres Rendering */}
+      <section className="relative h-[60vh] w-full overflow-hidden" style={{ background: '#f00' }}>
+        <img
+          src="/Borgo-Landscape.jpg"
+          alt="Borgo Batone"
+          className="absolute inset-0 h-full w-full object-cover"
+          loading="eager"
+          decoding="sync"
         />
-        <Footer />
+        <div className="absolute inset-0 bg-black/50" />
+        <div className="relative z-10 flex h-full flex-col items-center justify-center text-center text-white">
+          <h1 className="text-4xl font-bold drop-shadow-lg">Borgo Batone</h1>
+          <p className="mt-3 text-lg text-white/90 max-w-2xl px-4">
+            Referenzprojekt für lokale KI – Mac Mini, DSGVO, modular.
+          </p>
+        </div>
+      </section>
+
+      {/* Inhalt */}
+      <div className="min-h-screen bg-white text-neutral-900">
+        <div className="mx-auto max-w-6xl px-4 py-10">
+          <Header />
+          <VideoQnA
+            title={demoVideo.title}
+            videoSrc={demoVideo.videoSrc}
+            poster={demoVideo.poster}
+            chapters={demoChapters}
+            qa={demoQA}
+          />
+          <Footer />
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -107,7 +117,7 @@ function Header() {
     <header className="mb-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Strategix‑AI</h1>
+          <h1 className="text-2xl font-bold tracking-tight">strategix-AI</h1>
           <p className="text-sm text-neutral-500">Lokale Chatbots · DSGVO · Modular</p>
         </div>
         <a
@@ -127,7 +137,7 @@ function Footer() {
   return (
     <footer className="mt-12 border-t pt-6 text-xs text-neutral-500">
       <p>
-        © {new Date().getFullYear()} Strategix‑AI. Demo-Komponente: Video + Q&A. Ersetzbare Demo-Daten in
+        © {new Date().getFullYear()} strategix-AI. Demo-Komponente: Video + Q&amp;A. Ersetzbare Demo-Daten in
         <code className="mx-1 rounded bg-neutral-100 px-1">demoVideo</code>,
         <code className="mx-1 rounded bg-neutral-100 px-1">demoChapters</code> und
         <code className="mx-1 rounded bg-neutral-100 px-1">demoQA</code>.
@@ -136,11 +146,24 @@ function Footer() {
   );
 }
 
-function VideoQnA({ title, videoSrc, poster, chapters = [], qa = [] }) {
-  const videoRef = useRef(null);
+function VideoQnA({
+  title,
+  videoSrc,
+  poster,
+  chapters = [],
+  qa = [],
+}: {
+  title: string;
+  videoSrc: string;
+  poster?: string;
+  chapters: { time: number; label: string }[];
+  qa: { time: number; q: string; a: string }[];
+}) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const [playing, setPlaying] = useState(false);
   const [showChat, setShowChat] = useState(false);
-  const [hoverTime, setHoverTime] = useState(null);
+  const [hoverTime, setHoverTime] = useState<number | null>(null);
+  const [duration, setDuration] = useState(0); // zuverlässige Kapitelbreite
 
   const activeQA = useActiveQA(videoRef, qa);
 
@@ -156,7 +179,12 @@ function VideoQnA({ title, videoSrc, poster, chapters = [], qa = [] }) {
     }
   };
 
-  const seekTo = (t) => {
+  const onLoadedMetadata = () => {
+    const d = videoRef.current?.duration ?? 0;
+    setDuration(d);
+  };
+
+  const seekTo = (t: number) => {
     const el = videoRef.current;
     if (!el) return;
     el.currentTime = t;
@@ -164,19 +192,15 @@ function VideoQnA({ title, videoSrc, poster, chapters = [], qa = [] }) {
     setPlaying(true);
   };
 
-  // Kapitel-Balkenbreite
   const chapterPercents = useMemo(() => {
-    // Wir lesen Dauer erst nach Metadata ein
-    const duration = videoRef.current?.duration || 0;
     if (!duration || chapters.length === 0) return [];
-    const items = chapters.map((c, idx) => {
+    return chapters.map((c, idx) => {
       const start = c.time;
       const end = chapters[idx + 1]?.time ?? duration;
       const width = ((end - start) / duration) * 100;
       return { ...c, width };
     });
-    return items;
-  }, [chapters, videoRef.current?.duration]);
+  }, [chapters, duration]);
 
   return (
     <section className="grid gap-6 md:grid-cols-12">
@@ -188,11 +212,14 @@ function VideoQnA({ title, videoSrc, poster, chapters = [], qa = [] }) {
             poster={poster}
             onPlay={() => setPlaying(true)}
             onPause={() => setPlaying(false)}
+            onLoadedMetadata={onLoadedMetadata}
             controls
+            playsInline
+            preload="metadata"
             src={videoSrc}
           />
 
-          {/* Play/Pause Overlay-Button (optional) */}
+          {/* Play/Pause Overlay-Button */}
           <button
             onClick={onTogglePlay}
             className="absolute bottom-3 right-3 rounded-full border bg-white/80 p-2 backdrop-blur hover:bg-white"
@@ -216,7 +243,10 @@ function VideoQnA({ title, videoSrc, poster, chapters = [], qa = [] }) {
                   <span>{formatTime(activeQA.time)}</span>
                 </div>
                 <p className="font-medium">{activeQA.q}</p>
-                <p className="mt-1 text-sm text-neutral-700">{activeQA.a}</p>
+                <div
+                  className="mt-1 text-sm text-neutral-700"
+                  dangerouslySetInnerHTML={{ __html: md(activeQA.a) }}
+                />
               </motion.div>
             )}
           </AnimatePresence>
@@ -270,7 +300,7 @@ function VideoQnA({ title, videoSrc, poster, chapters = [], qa = [] }) {
           <div className="rounded-2xl border p-2">
             <ul className="divide-y">
               {qa.map((item) => (
-                <li key={item.time} className="">
+                <li key={item.time}>
                   <button
                     onClick={() => seekTo(item.time)}
                     className="group flex w-full items-start gap-3 p-3 text-left hover:bg-neutral-50"
@@ -280,7 +310,10 @@ function VideoQnA({ title, videoSrc, poster, chapters = [], qa = [] }) {
                     </div>
                     <div className="flex-1">
                       <p className="font-medium leading-snug">{item.q}</p>
-                      <p className="mt-0.5 text-sm text-neutral-600">{item.a}</p>
+                      <div
+                        className="mt-0.5 text-sm text-neutral-600"
+                        dangerouslySetInnerHTML={{ __html: md(item.a) }}
+                      />
                     </div>
                     <ChevronRight className="mt-1 shrink-0 opacity-0 transition group-hover:opacity-100" size={16} />
                   </button>
@@ -289,25 +322,27 @@ function VideoQnA({ title, videoSrc, poster, chapters = [], qa = [] }) {
             </ul>
           </div>
 
-          {/* Chat CTA */}
+          {/* Chat CTA – als Link zu /demo */}
           <div className="rounded-2xl border p-4 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium">Fragen zum System?</p>
-                <p className="text-sm text-neutral-600">Öffne die Demo-Chat-Seite.</p>
+                <p className="text-sm text-neutral-600">
+                  Öffne die Demo-Chat-Seite oder lies später die FAQ.
+                </p>
               </div>
-              <button
-                onClick={() => setShowChat(true)}
+              <Link
+                href="/demo"
                 className="inline-flex items-center gap-2 rounded-2xl border px-3 py-2 text-sm hover:shadow-sm"
               >
                 <MessageCircle size={16} /> Chat öffnen
-              </button>
+              </Link>
             </div>
           </div>
         </div>
       </aside>
 
-      {/* Chat-Panel (Platzhalter) */}
+      {/* Chat-Panel (Platzhalter – optional, falls nicht genutzt bleibt es unsichtbar) */}
       <AnimatePresence>
         {showChat && (
           <motion.div
@@ -321,7 +356,7 @@ function VideoQnA({ title, videoSrc, poster, chapters = [], qa = [] }) {
           >
             <div className="flex h-full flex-col">
               <div className="flex items-center justify-between border-b p-4">
-                <p className="font-semibold">Strategix‑AI Demo‑Chat</p>
+                <p className="font-semibold">strategix-AI Demo-Chat</p>
                 <button
                   className="rounded-full border p-1 hover:bg-neutral-50"
                   onClick={() => setShowChat(false)}
@@ -332,13 +367,13 @@ function VideoQnA({ title, videoSrc, poster, chapters = [], qa = [] }) {
               </div>
               <div className="flex-1 overflow-auto p-4">
                 <p className="text-sm text-neutral-600">
-                  Hier könnte eine Einbettung zu deiner bestehenden Bot‑Demo erscheinen
-                  (z. B. Link zu <code>/demo</code> oder eine iFrame‑Integration). Für eine
-                  Signal‑ oder lokale LLM‑Brücke lässt sich hier später eine Websocket‑/API‑Anbindung ergänzen.
+                  Hier könnte eine Einbettung zu deiner bestehenden Bot-Demo erscheinen
+                  (z. B. Link zu <code>/demo</code> oder eine iFrame-Integration). Für eine
+                  Signal- oder lokale LLM-Brücke lässt sich hier später eine Websocket-/API-Anbindung ergänzen.
                 </p>
               </div>
               <div className="border-t p-3 text-center text-xs text-neutral-500">
-                Placeholder – keine Live‑Verbindung konfiguriert.
+                Placeholder – keine Live-Verbindung konfiguriert.
               </div>
             </div>
           </motion.div>
