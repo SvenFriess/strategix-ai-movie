@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=500, height=700" />
+<title>Borgo Batone – Gäste-Q&A – 500x700 Full-Width</title>
+<style>
+  html, body {
+    margin:0; padding:0;
+    width:500px; height:700px;
+    overflow:hidden;
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+    color:#e8efff;
+    background: url('/Users/svenfriess/Projekte/50_strategix-AI/strategix-ai-movie/public/Borgo-Landscape.jpg') center center / cover no-repeat;
+    position: relative;
+  }
+  body::before {
+    content:'';
+    position:absolute;
+    inset:0;
+    background: rgba(0,0,0,0.25);
+    z-index:0;
+  }
+  .content-wrapper {
+    position: relative;
+    z-index:1;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,0.45);
+    display:flex;
+    flex-direction:column;
+  }
+  header {
+    text-align:center;
+    padding:8px 10px;
+    font-weight:600;
+    background:rgba(255,255,255,0.05);
+    border-bottom:1px solid rgba(255,255,255,0.15);
+  }
+  main {
+    flex:1;
+    display:grid;
+    grid-template-columns: 210px 1fr;
+    gap:8px;
+    padding:8px;
+  }
+  aside { display:flex; flex-direction:column; gap:8px; }
+  .grid { display:grid; grid-template-columns:1fr; gap:8px; }
+  .card {
+    background:rgba(255,255,255,0.08);
+    border:1px solid rgba(255,255,255,0.15);
+    border-radius:10px;
+    padding:8px;
+  }
+  .question { font-weight:600; font-size:12px; margin-bottom:4px; }
+  .btn {
+    background:rgba(255,255,255,0.1);
+    color:#fff;
+    border:1px solid rgba(255,255,255,0.2);
+    border-radius:8px;
+    font-size:12px;
+    cursor:pointer;
+    padding:4px 8px;
+  }
+  .btn:hover { background:rgba(255,255,255,0.2); }
+  section { display:flex; flex-direction:column; justify-content:space-between; }
+  .bubbles {
+    flex:1; overflow:auto; display:flex; flex-direction:column; gap:6px; padding-bottom:6px;
+  }
+  .bubble {
+    max-width:85%; padding:8px 10px; border-radius:10px; font-size:12.5px; line-height:1.4; background:rgba(255,255,255,0.1);
+  }
+  .me { align-self:flex-end; background:rgba(255,255,255,0.25); }
+  .bot { align-self:flex-start; background:rgba(0,0,0,0.6); }
+  .row { display:flex; gap:6px; align-items:center; }
+  input {
+    flex:1; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2);
+    border-radius:8px; color:#fff; padding:6px 8px;
+  }
+  .send { min-width:76px; }
+  .typing span {
+    height:6px; width:6px; margin:0 2px; display:inline-block; border-radius:50%;
+    background:rgba(255,255,255,.7); animation: blink 1.1s infinite ease-in-out;
+  }
+  .typing span:nth-child(2){animation-delay:.2s}
+  .typing span:nth-child(3){animation-delay:.4s}
+  @keyframes blink{0%{opacity:.2; transform:translateY(0)} 50%{opacity:.9; transform:translateY(-2px)} 100%{opacity:.2; transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div class="content-wrapper">
+  <header>Borgo Batone – Gäste-Q&A</header>
+  <main>
+    <aside><div class="grid" id="grid"></div></aside>
+    <section>
+      <div class="bubbles" id="bubbles"></div>
+      <div class="row">
+        <input id="input" placeholder="Ihre Frage …" />
+        <button class="btn send" id="send">Senden</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script type="application/json" id="qa-json">[{"q": "Wie lautet die Adresse?", "a": "Borgo Batone, Via di Loppeglia, 55064 Pescaglia (LU), Italien."}, {"q": "Check-in und Check-out?", "a": "Check-in ab 16:00, Check-out bis 10:00 (sofern nicht anders abgesprochen)."}, {"q": "Gibt es WLAN?", "a": "Ja, stabiles WLAN im Haus; Zugangsdaten liegen in der Willkommensmappe vor Ort."}, {"q": "Sind Hunde erlaubt?", "a": "Ja, Hunde sind willkommen. Bitte Rücksicht auf andere Gäste und die Umgebung nehmen."}, {"q": "Anreise – worauf achten?", "a": "Die letzten Kilometer sind kurvig. Bei Nacht langsam fahren; Navi-Pin aus der Buchungsbestätigung nutzen."}, {"q": "Parken?", "a": "Kostenlose Stellplätze direkt am Haus."}, {"q": "Hausregeln kurz?", "a": "Kein Rauchen im Haus; Ruhezeiten ab 22:00; Mülltrennung gemäß Hinweisschild in der Küche."}, {"q": "Wichtige Notfallkontakte?", "a": "Lokale Notrufnummern + Ansprechpartner stehen in der Willkommensmappe."}, {"q": "Gibt es Einkaufsmöglichkeiten?", "a": "Ja, in der Umgebung (Lucca-Region). Empfehlungen findest du auf der Infokarte im Haus."}, {"q": "Wie läuft die Abreise?", "a": "Fenster schließen, Müll entsorgen, Kühlschrank leeren, Schlüssel zurücklegen – Checkliste liegt bereit."}]</script>
+<script>
+function readJSON(){try{return JSON.parse(document.getElementById('qa-json').textContent)}catch(e){console.error(e);return[]}}
+const FULL_QA=readJSON();
+const VISIBLE=FULL_QA.slice(0,5);
+const el=s=>document.querySelector(s);
+const grid=el("#grid"),bubbles=el("#bubbles"),input=el("#input"),sendBtn=el("#send");
+VISIBLE.forEach(item=>{const d=document.createElement("div");d.className="card";d.innerHTML=`<div class='question'>${item.q}</div><button class='btn choose'>Auswählen</button>`;d.querySelector(".choose").onclick=()=>{input.value=item.q;input.dataset.answer=item.a;};grid.appendChild(d);});
+function addBubble(t,who="me"){const b=document.createElement("div");b.className="bubble "+(who==="me"?"me":"bot");b.textContent=t;bubbles.appendChild(b);bubbles.scrollTop=bubbles.scrollHeight;return b;}
+function addTyping(){const b=document.createElement("div");b.className="bubble bot";b.innerHTML="<div class='typing'><span></span><span></span><span></span></div>";bubbles.appendChild(b);bubbles.scrollTop=bubbles.scrollHeight;return b;}
+function typeInto(e,t,s=14){return new Promise(async r=>{e.textContent="";for(let i=0;i<t.length;i++){e.textContent+=t[i];await new Promise(x=>setTimeout(x,s));}r();});}
+function normalize(s){return(s||"").toLowerCase();}
+function bestMatch(q){q=normalize(q);let b={score:0,item:null};for(const i of FULL_QA){const c=(i.q+" "+i.a).toLowerCase();let s=0;q.split(" ").forEach(tok=>{if(c.includes(tok))s++;});if(s>b.score)b={score:s,item:i};}return b.item;}
+async function send(){const q=(input.value||"").trim();const a=input.dataset.answer||"";if(!q)return;addBubble(q,"me");input.value="";input.dataset.answer="";const t=addTyping();await new Promise(r=>setTimeout(r,800+Math.random()*800));const bot=document.createElement("div");bot.className="bubble bot";t.replaceWith(bot);let ans=a;if(!ans){const m=bestMatch(q);if(m)ans=m.a;}await typeInto(bot,ans||"Dazu liegen mir aktuell keine Informationen vor.",14);}
+sendBtn.onclick=send;input.onkeydown=e=>{if(e.key==="Enter")send();};
+</script>
+</body>
+</html>
