@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>strategix AI – Demo-Starter</title>
+<style>
+  :root{
+    --ink:#e8efff; --muted:#c7d3f0; --panel:rgba(10,14,28,.55); --card:rgba(20,24,40,.65);
+  }
+  *{box-sizing:border-box} html,body{height:100%}
+  body{
+    margin:0; color:var(--ink);
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+    background:#000;
+    overflow:hidden;
+  }
+  /* Hintergrund wie zuvor */
+  .bg{
+    position:fixed; inset:0;
+    background-image:url('/Users/svenfriess/Projekte/50_strategix-AI/strategix-ai-movie/public/Borgo-Landscape.jpg');
+    background-size:cover; background-position:center;
+    filter:saturate(1.05) contrast(1.05) brightness(0.85);
+    transform:scale(1.02);
+  }
+  .overlay{
+    position:fixed; inset:0; pointer-events:none;
+    background: radial-gradient(80% 60% at 50% 20%, rgba(0,0,0,.25), rgba(0,0,0,.65)),
+                linear-gradient(to bottom, rgba(0,0,0,.25), rgba(0,0,0,.55));
+  }
+
+  /* Intro */
+  .intro{
+    position:fixed; inset:0; display:grid; place-items:center;
+    background:rgba(0,0,0,.50);
+    animation:introFade 2.5s ease forwards;
+  }
+  .intro-card{
+    text-align:center;
+    padding:28px 26px;
+    border-radius:16px;
+    background:var(--panel);
+    box-shadow:0 20px 60px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.06);
+    backdrop-filter:blur(6px);
+  }
+  .brand{
+    font-size:22px; font-weight:700; letter-spacing:.2px; margin:0 0 6px;
+    text-shadow:0 2px 18px rgba(0,0,0,.6)
+  }
+  .brand .s{ text-transform:lowercase; }
+  .brand .AI{ margin-left:.3ch; }
+  .sub{ margin:0; color:var(--muted); text-shadow:0 2px 12px rgba(0,0,0,.6) }
+
+  /* Panel mit Fallback-Button, falls Pop-ups blockiert */
+  .wrap{ position:relative; display:grid; place-items:center; height:100%; padding:24px; }
+  .panel{
+    width:min(560px,92vw); padding:22px; border-radius:16px; text-align:center;
+    background:var(--panel);
+    box-shadow:0 20px 60px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.06);
+    backdrop-filter:blur(6px);
+  }
+  .btn{
+    background:var(--card); color:var(--ink);
+    border:1px solid rgba(255,255,255,.25); border-radius:12px;
+    padding:12px 16px; font-size:16px; cursor:pointer;
+    transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    box-shadow:0 6px 24px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.08);
+    text-shadow:0 1px 10px rgba(0,0,0,.6);
+  }
+  .btn:hover{ transform:translateY(-1px); border-color:rgba(255,255,255,.45); }
+  .hint{ color:var(--muted); font-size:12px; margin-top:10px; }
+
+  @keyframes introFade{
+    0%{ opacity:1 }
+    80%{ opacity:1 }
+    100%{ opacity:0; visibility:hidden }
+  }
+</style>
+</head>
+<body>
+  <div class="bg" aria-hidden="true"></div>
+  <div class="overlay" aria-hidden="true"></div>
+
+  <!-- Intro-Layer -->
+  <div id="intro" class="intro" aria-live="polite">
+    <div class="intro-card">
+      <h1 class="brand"><span class="s">strategix</span><span class="AI">AI</span></h1>
+      <p class="sub">Lokale LLM-Demo wird gestartet …</p>
+    </div>
+  </div>
+
+  <!-- Fallback-Panel (sichtbar, falls Auto-Start blockiert) -->
+  <div class="wrap">
+    <div class="panel">
+      <p>Falls dein Browser Pop-ups blockiert hat, kannst du die Demo hier manuell öffnen.</p>
+      <button class="btn" id="open">Fenster öffnen (500×700)</button>
+      <div class="hint">Tipp: Pop-ups für diese Seite erlauben.</div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const url = 'borgo_batone_llm_sim_board_final_500x700.html'; // relativer Pfad
+  const features = [
+    'width=500','height=700',
+    'resizable=yes','scrollbars=yes',
+    'noopener','noreferrer'
+  ].join(',');
+
+  function openDemo(){
+    const w = window.open(url, 'borgo-demo', features);
+    if (w) { try { w.focus(); } catch(_){} }
+    else {
+      // Falls blockiert: Nutzer informieren, Fallback-Button bleibt sichtbar
+      console.warn('Popup wurde blockiert. Manuell über Button öffnen.');
+    }
+  }
+
+  // Auto-Start nach 2.5s Intro
+  setTimeout(openDemo, 2500);
+
+  // Fallback-Button
+  document.getElementById('open').addEventListener('click', openDemo);
+})();
+</script>
+</body>
+</html>
